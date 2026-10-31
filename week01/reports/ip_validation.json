@@ -1,0 +1,38 @@
+[
+    {
+        "hostname": "R1",
+        "ip": "10.10.10.11",
+        "site": "HQ",
+        "validation": "VALID_IP"
+    },
+    {
+        "hostname": "R2",
+        "ip": "10.10.20.12",
+        "site": "HQ",
+        "validation": "WRONG_SUBNET"
+    },
+    {
+        "hostname": "R3",
+        "ip": "10.20.20.10",
+        "site": "DR",
+        "validation": "VALID_IP"
+    },
+    {
+        "hostname": "R4",
+        "ip": "10.30.30.5",
+        "site": "Branch",
+        "validation": "VALID_IP"
+    },
+    {
+        "hostname": "R5",
+        "ip": "10.20.20.999",
+        "site": "DR",
+        "validation": "INVALID_IP"
+    },
+    {
+        "hostname": "R6",
+        "ip": "10.40.40.10",
+        "site": "DC2",
+        "validation": "UNKNOWN_SITE"
+    }
+]
