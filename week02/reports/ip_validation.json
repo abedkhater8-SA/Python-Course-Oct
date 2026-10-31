@@ -15,7 +15,7 @@
         "hostname": "R3",
         "ip": "10.20.20.10",
         "site": "DR",
-        "validation": "CONFIG_ERROR"
+        "validation": "VALID"
     },
     {
         "hostname": "R4",

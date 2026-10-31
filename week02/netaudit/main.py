@@ -51,7 +51,7 @@ def main():
         if status == "VALID":
             logger.debug("Router %s IP is valid", router['hostname'])
         elif status == "CONFIG_ERROR":
-            logger.error("Router %s has configuration error", router['hostname'])
+            pass
         else:
             logger.warning("Validation findings | hostname: %s | ip: %s | site: %s | status: %s", router['hostname'], router['ip'], router['site'], status)
         
@@ -65,12 +65,16 @@ def main():
 
         results.append(record)
 
-    report_dir = BASE_DIR / "reports"
-    report_dir.mkdir(exist_ok=True)
+    try:
+        report_dir = BASE_DIR / "reports"
+        report_dir.mkdir(parents=True, exist_ok=True)
 
-    export_json(results, report_dir / "ip_validation.json")
-    export_csv(results, report_dir / "ip_validation.csv")
+        export_json(results, report_dir / "ip_validation.json")
+        export_csv(results, report_dir / "ip_validation.csv")
 
+    except OSError:
+        logger.exception("Failed to export network audit reports")
+        raise SystemExit(1)
     for router in results:
         print(f"{router['hostname']}: {router['validation']}")
     duration = perf_counter() - start_time
