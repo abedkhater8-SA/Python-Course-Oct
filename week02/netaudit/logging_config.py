@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+import os
 
 
 def configure_logging(base_dir, verbose=False):
@@ -25,10 +26,31 @@ def configure_logging(base_dir, verbose=False):
 
     console_handler = logging.StreamHandler()
 
+    log_level = os.getenv(
+        "NETAUDIT_LOG_LEVEL", "ERROR"
+    ).upper()
+
+    levels = {
+        "DEBUG": logging.DEBUG,
+        "INFO": logging.INFO,
+        "WARNING": logging.WARNING,
+        "ERROR": logging.ERROR,
+        "CRITICAL": logging.CRITICAL
+    }
+
+    if log_level not in levels:
+        raise ValueError(
+            f"Unsupported logging level: {log_level}"
+        )
+
+    console_handler = logging.StreamHandler()
+
     if verbose:
         console_handler.setLevel(logging.DEBUG)
     else:
-        console_handler.setLevel(logging.ERROR)
+        console_handler.setLevel(levels[log_level])
+
+    console_handler.setFormatter(formatter)
 
     console_handler.setFormatter(formatter)
 

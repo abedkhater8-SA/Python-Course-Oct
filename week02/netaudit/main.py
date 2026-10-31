@@ -1,5 +1,6 @@
 import json
 import argparse
+import os
 from pathlib import Path
 from .inventory import load_json_file
 from .validators import (
@@ -12,7 +13,7 @@ from time import perf_counter
 BASE_DIR = Path(__file__).resolve().parent.parent
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Network IP Validation Tool")
-    parser.add_argument("--site", type=str, help="Select Site to Edit")
+    parser.add_argument("--site",default=os.getenv("NETAUDIT_SITE"), type=str, help="Select Site to Edit")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
     return parser.parse_args()
 
