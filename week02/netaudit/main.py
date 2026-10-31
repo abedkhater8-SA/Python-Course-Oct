@@ -1,7 +1,6 @@
 import json
 import argparse
 from pathlib import Path
-from venv import logger
 from .inventory import load_json_file
 from .validators import (
     validate_router_ip,
@@ -11,7 +10,6 @@ from .reports import export_json, export_csv
 from .logging_config import configure_logging
 from time import perf_counter
 BASE_DIR = Path(__file__).resolve().parent.parent
-start_time = perf_counter()
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Network IP Validation Tool")
     parser.add_argument("--site", type=str, help="Select Site to Edit")
@@ -19,6 +17,7 @@ def parse_arguments():
     return parser.parse_args()
 
 def main():
+    start_time = perf_counter()
     args = parse_arguments()
     logger = configure_logging(BASE_DIR, verbose=args.verbose)
     logger.info("Audit started | site: %s | verbose: %s", args.site, args.verbose)
