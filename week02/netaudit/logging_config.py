@@ -1,6 +1,9 @@
+
+"""Logging configuration for Netaudit."""
+
 import logging
-from pathlib import Path
 import os
+from pathlib import Path
 
 
 def configure_logging(base_dir, verbose=False):
@@ -12,35 +15,41 @@ def configure_logging(base_dir, verbose=False):
     logger.setLevel(logging.DEBUG)
     logger.propagate = False
 
+    # Remove existing handlers
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
+        handler.close()
+
     formatter = logging.Formatter(
         fmt="%(asctime)s | %(levelname)-8s | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S"
     )
 
+    # File logging
     file_handler = logging.FileHandler(
         log_dir / "netaudit.log",
         encoding="utf-8"
     )
+
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
 
-    console_handler = logging.StreamHandler()
-
-    log_level = os.getenv(
-        "NETAUDIT_LOG_LEVEL", "ERROR"
-    ).upper()
-
+    # Console logging
     levels = {
         "DEBUG": logging.DEBUG,
         "INFO": logging.INFO,
         "WARNING": logging.WARNING,
         "ERROR": logging.ERROR,
-        "CRITICAL": logging.CRITICAL
+        "CRITICAL": logging.CRITICAL,
     }
 
-    if log_level not in levels:
+    level_name = os.getenv(
+        "NETAUDIT_LOG_LEVEL", "ERROR"
+    ).upper()
+
+    if level_name not in levels:
         raise ValueError(
-            f"Unsupported logging level: {log_level}"
+            f"Invalid logging level: {level_name}"
         )
 
     console_handler = logging.StreamHandler()
@@ -48,16 +57,9 @@ def configure_logging(base_dir, verbose=False):
     if verbose:
         console_handler.setLevel(logging.DEBUG)
     else:
-        console_handler.setLevel(levels[log_level])
+        console_handler.setLevel(levels[level_name])
 
     console_handler.setFormatter(formatter)
-
-    console_handler.setFormatter(formatter)
-
-    # Avoid accumulating handlers if called more than once.
-    for handler in logger.handlers[:]:
-        logger.removeHandler(handler)
-        handler.close()
 
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
