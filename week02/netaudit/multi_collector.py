@@ -2,12 +2,12 @@ import argparse
 import json
 from getpass import getpass
 from pathlib import Path
-
+from time import sleep
 from netmiko.exceptions import (
     NetmikoAuthenticationException,
     NetmikoTimeoutException,
+    ReadTimeout,
 )
-
 from .inventory import load_json_file
 from .logging_config import configure_logging
 from .ssh_client import collect_router_data
@@ -30,47 +30,104 @@ def build_connection(router, username, password):
         "host": router["host"],
         "username": username,
         "password": password,
-        "secret": password,       
+        "secret": password,
+        "conn_timeout": 10,      
     }
 
 def collect_all_routers(routers, username, password, commands, logger):
     results = []
+    max_attempts = 3
+    retry_delay = 2 #seconds
+
 
     for router in routers:
         device = build_connection(router, username, password)
-        try:
-            output = collect_router_data(device, commands, logger)
-            results.append({
-                "hostname": router["hostname"],
-                "site": router["site"],
-                "status": "success",
-                "data": output
-            })
-            
-        except (NetmikoAuthenticationException, NetmikoTimeoutException) as e:
-            logger.error(
-                "SSH connection failed | host=%s error=%s",
-                router["host"],
-                str(e)
-            )
-            results.append({
-                "hostname": router["hostname"],
-                "site": router["site"],
-                "status": "failed",
-                "error": str(e),
-            })
-        except Exception as e:
-            logger.error(
-                "Unexpected error | host=%s error=%s",
-                router["host"],
-                str(e)
-            )   
-            results.append({
-                "hostname": router["hostname"],
-                "site": router["site"],
-                "status": "failed",
-                "error": str(e),
-            })
+
+        for attempt in range(1, max_attempts + 1):
+            try:
+                logger.info(
+                    "Collection attempt | host=%s attempt=%d/%d",
+                    router["host"],
+                    attempt,
+                    max_attempts
+                )
+                output = collect_router_data(device, commands, logger)
+                results.append({
+                    "hostname": router["hostname"],
+                    "site": router["site"],
+                    "host": router["host"],
+                    "status": "success",
+                    "attempt": attempt,
+                    "data": output
+                })
+                break  # Exit the retry loop if successful
+            except NetmikoAuthenticationException as e:
+                logger.error(
+                    "SSH connection failed | host=%s error=%s",
+                    router["host"],
+                    str(e)
+                )
+                results.append({
+                    "hostname": router["hostname"],
+                    "site": router["site"],
+                    "host": router["host"],
+                    "status": "failed",
+                    "attempt": attempt,
+                    "error": str(e),
+                    "error_type": "authentication"
+                })
+                break  # No point in retrying authentication errors
+            except NetmikoTimeoutException as e:
+                logger.error(
+                    "SSH connection timed out | host=%s error=%s",
+                    router["host"],
+                    str(e)
+                )
+                if attempt < max_attempts and "TCP connection to device failed" in str(e):
+                    logger.info(
+                        "Retrying SSH connection | host=%s attempt=%d",
+                        router["host"],
+                        attempt + 1
+                    )
+                    sleep(retry_delay)
+                    continue
+                else: 
+                    results.append({
+                        "hostname": router["hostname"],
+                        "site": router["site"],
+                        "host": router["host"],
+                        "status": "failed",
+                        "attempt": attempt,
+                        "error": str(e),
+                        "error_type": "connection_timeout"
+                    })
+                    break
+            except ReadTimeout as e:
+                logger.error(
+                    "SSH read timeout | host=%s error=%s",
+                    router["host"],
+                    str(e)
+                )
+                if attempt < max_attempts:
+                    logger.info(
+                        "Retrying SSH read | host=%s attempt=%d",
+                        router["host"],
+                        attempt + 1
+                    )
+                    sleep(retry_delay)
+                    continue
+                else:
+                    results.append({
+                        "hostname": router["hostname"],
+                        "site": router["site"],
+                        "host": router["host"],
+                        "status": "failed",
+                        "attempt": attempt,
+                        "error": str(e),
+                        "error_type": "read_timeout"
+                    })
+                    break
+              
     return results
 
 def main():
@@ -89,7 +146,7 @@ def main():
     commands = [
         "show version",
         "show ip interface brief",
-        "show run",
+        "show ip route summary",
     ]
 
     # Collect data from all routers
@@ -103,6 +160,14 @@ def main():
         json.dump(results, f, indent=4)
 
     logger.info("Data collection completed. Results saved to %s", output_file)
+
+    print("Data collection completed. Results saved to", output_file)
+    print("======= Summary ======")
+    print(f"total routers: {len(results)}")
+    print(f"successful: {sum(1 for r in results if r['status'] == 'success')}")
+    print(f"failed: {sum(1 for r in results if r['status'] == 'failed')}")
+    print(f"retries: {sum(1 for r in results if r['attempt'] > 1)}")
+    print("-----------------------")
 
 if __name__ == "__main__":
     main()

@@ -1,7 +1,28 @@
 [
     {
-        "hostname": "R1",
+        "hostname": "CSR1kv",
         "host": "10.100.100.12",
         "site": "HQ"
+    }
+    ,
+    {
+        "hostname": "C8kv",
+        "host": "10.100.100.13",
+        "site": "Branch1"
+    },
+    {
+        "hostname": "DIST1",
+        "host": "10.100.100.14",
+        "site": "HQ"
+    },
+    {
+        "hostname": "DIST2",
+        "host": "10.100.100.15",
+        "site": "HQ"
+    },
+    {
+        "hostname": "R5",
+        "host": "10.100.100.11",
+        "site": "Branch4"
     }
 ]
